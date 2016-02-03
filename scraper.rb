@@ -31,12 +31,9 @@ if page.title != "Dashboard"
 end
 
 @client = Mysql2::Client.new(:host => secrets['DB_HOST'], :username => secrets['DB_USER'], :password => secrets['DB_PASSWORD'], :database => secrets['DB_NAME'])
-@client.query("DROP TABLE IF EXISTS COURSES;")
-@client.query("DROP TABLE IF EXISTS STUDENTS;")
-@client.query("DROP TABLE IF EXISTS STAFF;")
 
 sql = <<-SQL
-CREATE TABLE COURSES (
+CREATE TABLE IF NOT EXISTS COURSES (
 	MID INT NOT NULL,
 	TEACHER_MID INT,
 	TITLE VARCHAR(50) NOT NULL,
@@ -46,7 +43,7 @@ SQL
 @client.query(sql)
 
 sql = <<-SQL
-CREATE TABLE STAFF (
+CREATE TABLE IF NOT EXISTS STAFF (
 	MID INT NOT NULL,
 	USERNAME VARCHAR(30) NOT NULL,
 	FIRST_NAME VARCHAR(15) NOT NULL,
@@ -58,11 +55,11 @@ CREATE TABLE STAFF (
 SQL
 @client.query(sql)
 
-grades = Hash.new
-grades[1] = 19
-grades[2] = 18
-grades[3] = 17
-grades[4] = 16
+@grades = Hash.new
+@grades[1] = 19
+@grades[2] = 18
+@grades[3] = 17
+@grades[4] = 16
 
 def extract_person(mid, page)
 	name = page.title.split(":")[0].split(" ")
@@ -87,7 +84,7 @@ def extract_person(mid, page)
 		statement = @client.prepare("INSERT INTO STAFF VALUES(?, ?, ?, ?, ?, ?)")
 		statement.execute(mid, username, first_name, last_name, department, picture)
 	else
-		#username = (first_name[0] + last_name + grades[department[0]]).downcase
+		username = (first_name[0] + last_name + @grades[department[0]]).downcase
 	end
 end
 
@@ -99,6 +96,8 @@ def extract_course(mid, page)
 		title = parts[0]
 	end
 	
+	title.strip!
+	
 	teacher_page = @agent.get("http://moodle.regis.org/user/index.php?roleid=3&sifirst=&silast=&id="+mid.to_s)
 	
 	teacher_id = nil
@@ -109,17 +108,26 @@ def extract_course(mid, page)
 	end
 	
 	puts mid.to_s + ": " + title
-	statement = @client.prepare("INSERT INTO COURSES VALUES(?, ?, ?)")
-	statement.execute(mid, teacher_id, title)
+	title = @client.escape(title)
+	t_id = "NULL"
+	t_id2 = ""
+	if teacher_id
+		t_id = teacher_id
+		t_id2 = "TEACHER_MID=#{teacher_id}, "
+	end
+	
+	sql = "INSERT INTO COURSES VALUES(#{mid}, #{t_id}, '#{title}') ON DUPLICATE KEY UPDATE #{t_id2}TITLE='#{title}'"
+	puts sql
+	@client.query(sql)
 end
 
 
-(5..700).each do |i|
+(1..700).each do |i|
 	sleep(1)
 	begin
 		page = @agent.get("http://moodle.regis.org/course/view.php?id=" + i.to_s)
 		if page.title == "Notice" or page.title == "Error"
-			puts "Skipped"
+			@client.query("DELETE FROM COURSES WHERE MID=#{i}")
 			next
 		end
 		extract_course(i, page)
@@ -134,7 +142,8 @@ end
 	begin
 		page = @agent.get("http://moodle.regis.org/user/profile.php?id=" + i.to_s)
 		if page.title == "Notice" or page.title == "Error" or !page.title
-			next
+			@client.query("DELETE FROM STAFF WHERE MID=#{i}")
+			#@client.query("DELETE * FROM STUDENTS WHERE MID=#{i}")
 		end
 		extract_person(i, page)
 	rescue Exception => e

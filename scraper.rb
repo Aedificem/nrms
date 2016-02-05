@@ -34,26 +34,39 @@ end
 
 sql = <<-SQL
 CREATE TABLE IF NOT EXISTS COURSES (
-	MID INT NOT NULL,
+	ID INT NOT NULL,
 	TEACHER_MID INT,
 	TITLE VARCHAR(50) NOT NULL,
-	PRIMARY KEY (MID)
+	PRIMARY KEY (ID)
 );
 SQL
 @client.query(sql)
 
 sql = <<-SQL
 CREATE TABLE IF NOT EXISTS STAFF (
-	MID INT NOT NULL,
+	ID INT NOT NULL,
 	USERNAME VARCHAR(30) NOT NULL,
 	FIRST_NAME VARCHAR(15) NOT NULL,
 	LAST_NAME VARCHAR(30) NOT NULL,
 	DEPARTMENT VARCHAR(20),
 	MPICTIURE VARCHAR(100),
-	PRIMARY KEY (MID)
+	PRIMARY KEY (ID)
 );
 SQL
 @client.query(sql)
+
+sql = <<-SQL
+CREATE TABLE IF NOT EXISTS STUDENTS (
+	ID INT NOT NULL,
+	USERNAME VARCHAR(30) NOT NULL,
+	FIRST_NAME VARCHAR(15) NOT NULL,
+	LAST_NAME VARCHAR(30) NOT NULL,
+	ADVISEMENT VARCHAR(20),
+	MPICTURE VARCHAR(100)
+	PRIMARY KEY (ID)
+);
+SQL
+#@client.query(sql)
 
 @grades = Hash.new
 @grades[1] = 19
@@ -87,6 +100,7 @@ def extract_person(mid, page)
 		username = (first_name[0] + last_name + @grades[department[0]]).downcase
 	end
 end
+
 
 def extract_course(mid, page)
 	parts = page.title.split(":")
@@ -127,7 +141,7 @@ end
 	begin
 		page = @agent.get("http://moodle.regis.org/course/view.php?id=" + i.to_s)
 		if page.title == "Notice" or page.title == "Error"
-			@client.query("DELETE FROM COURSES WHERE MID=#{i}")
+			@client.query("DELETE FROM COURSES WHERE ID=#{i}")
 			next
 		end
 		extract_course(i, page)
@@ -142,7 +156,7 @@ end
 	begin
 		page = @agent.get("http://moodle.regis.org/user/profile.php?id=" + i.to_s)
 		if page.title == "Notice" or page.title == "Error" or !page.title
-			@client.query("DELETE FROM STAFF WHERE MID=#{i}")
+			@client.query("DELETE FROM STAFF WHERE ID=#{i}")
 			#@client.query("DELETE * FROM STUDENTS WHERE MID=#{i}")
 		end
 		extract_person(i, page)

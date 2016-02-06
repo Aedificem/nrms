@@ -34,46 +34,46 @@ end
 
 sql = <<-SQL
 CREATE TABLE IF NOT EXISTS courses (
-	ID INT NOT NULL,
-	TEACHER_MID INT,
-	TITLE VARCHAR(50) NOT NULL,
-	PRIMARY KEY (ID)
+	id INT NOT NULL,
+	teacher_id INT,
+	title VARCHAR(50) NOT NULL,
+	PRIMARY KEY (id)
 );
 SQL
 @client.query(sql)
 
 sql = <<-SQL
 CREATE TABLE IF NOT EXISTS staffs (
-	ID INT NOT NULL,
-	USERNAME VARCHAR(30) NOT NULL,
-	FIRST_NAME VARCHAR(15) NOT NULL,
-	LAST_NAME VARCHAR(30) NOT NULL,
-	DEPARTMENT VARCHAR(20),
-	MPICTURE VARCHAR(100),
-	PRIMARY KEY (ID)
+	id INT NOT NULL,
+	username VARCHAR(30) NOT NULL,
+	first_name VARCHAR(15) NOT NULL,
+	last_name VARCHAR(30) NOT NULL,
+	department VARCHAR(20),
+	mpicture VARCHAR(100),
+	PRIMARY KEY (id)
 );
 SQL
 @client.query(sql)
 
 sql = <<-SQL
 CREATE TABLE IF NOT EXISTS students (
-	ID INT NOT NULL,
-	USERNAME VARCHAR(30) NOT NULL,
-	FIRST_NAME VARCHAR(15) NOT NULL,
-	LAST_NAME VARCHAR(30) NOT NULL,
-	ADVISEMENT VARCHAR(20),
-	MPICTURE VARCHAR(100),
-	PRIMARY KEY (ID)
+	id INT NOT NULL,
+	username VARCHAR(30) NOT NULL,
+	first_name VARCHAR(15) NOT NULL,
+	last_name VARCHAR(30) NOT NULL,
+	advisement VARCHAR(20),
+	mpicture VARCHAR(100),
+	PRIMARY KEY (id)
 );
 SQL
 @client.query(sql)
 
 sql = <<-SQL
 CREATE TABLE IF NOT EXISTS students_courses (
-	ID INT NOT NULL AUTO_INCREMENT,
+	id INT NOT NULL AUTO_INCREMENT,
 	student_id INT NOT NULL,
 	course_id INT NOT NULL,
-	PRIMARY KEY (ID)
+	PRIMARY KEY (id)
 );
 SQL
 @client.query(sql)
@@ -104,16 +104,15 @@ def extract_person(mid, page)
 	puts "#{mid.to_s}: #{type.capitalize} #{last_name}, #{first_name} of #{department}"
 
 	if type == :staff
-		username = (first_name[0] + last_name).downcase
-		sql = "INSERT INTO staffs (ID, USERNAME, FIRST_NAME, LAST_NAME, DEPARTMENT, MPICTURE) VALUES(#{mid}, \"#{username}\", \"#{first_name}\", \"#{last_name}\", \"#{department}\", \"#{picture}\")"
-		sql += " ON DUPLICATE KEY UPDATE USERNAME=\"#{username}\", FIRST_NAME=\"#{first_name}\", LAST_NAME=\"#{last_name}\", DEPARTMENT=\"#{department}\", MPICTURE=\"#{picture}\""
-		puts sql
+		username = (first_name[0] + last_name).downcase.sub("'", "")
+		sql = "INSERT INTO staffs (id, username, first_name, last_name, department, mpicture) VALUES(#{mid}, \"#{username}\", \"#{first_name}\", \"#{last_name}\", \"#{department}\", \"#{picture}\")"
+		sql += " ON DUPLICATE KEY UPDATE username=\"#{username}\", first_name=\"#{first_name}\", last_name=\"#{last_name}\", department=\"#{department}\", mpicture=\"#{picture}\""
 		@client.query(sql)
 	else
 		grade =  @grades[department[0]]
-		username = (first_name[0] + last_name + grade.to_s).downcase
-		sql = "INSERT INTO students (ID, USERNAME, FIRST_NAME, LAST_NAME, ADVISEMENT, MPICTURE) VALUES(#{mid}, \"#{username}\", \"#{first_name}\", \"#{last_name}\", \"#{department}\", \"#{picture}\")"
-		sql += " ON DUPLICATE KEY UPDATE USERNAME=\"#{username}\", FIRST_NAME=\"#{first_name}\", LAST_NAME=\"#{last_name}\", ADVISEMENT=\"#{department}\", MPICTURE=\"#{picture}\""
+		username = (first_name[0] + last_name + grade.to_s).downcase.sub("'", "")
+		sql = "INSERT INTO students (id, username, first_name, last_name, advisement, mpicture) VALUES(#{mid}, \"#{username}\", \"#{first_name}\", \"#{last_name}\", \"#{department}\", \"#{picture}\")"
+		sql += " ON DUPLICATE KEY UPDATE username=\"#{username}\", first_name=\"#{first_name}\", last_name=\"#{last_name}\", advisement=\"#{department}\", mpicture=\"#{picture}\""
 		@client.query(sql)
 
 		@client.query("DELETE FROM students_courses WHERE student_id=#{mid}")
@@ -151,21 +150,19 @@ def extract_course(mid, page)
 	t_id2 = ""
 	if teacher_id
 		t_id = teacher_id
-		t_id2 = "TEACHER_MID=#{teacher_id}, "
+		t_id2 = "teacher_id=#{teacher_id}, "
 	end
 
-	sql = "INSERT INTO courses VALUES(#{mid}, #{t_id}, '#{title}') ON DUPLICATE KEY UPDATE #{t_id2}TITLE='#{title}'"
+	sql = "INSERT INTO courses (id, teacher_id, title) VALUES(#{mid}, #{t_id}, '#{title}') ON DUPLICATE KEY UPDATE #{t_id2}title='#{title}'"
 	@client.query(sql)
 end
 
-
-=begin
 (1..700).each do |i|
 	sleep(1)
 	begin
 		page = @agent.get("http://moodle.regis.org/course/view.php?id=" + i.to_s)
 		if page.title == "Notice" or page.title == "Error"
-			@client.query("DELETE FROM COURSES WHERE ID=#{i}")
+			@client.query("DELETE FROM courses WHERE id=#{i}")
 			next
 		end
 		extract_course(i, page)
@@ -173,15 +170,14 @@ end
 		next
 	end
 end
-=end
 
-(1198..3000).each do |i|
+(200..3000).each do |i|
 	sleep(1)
 	begin
 		page = @agent.get("http://moodle.regis.org/user/profile.php?id=" + i.to_s)
 		if page.title == "Notice" or page.title == "Error" or !page.title
-			@client.query("DELETE FROM staffs WHERE ID=#{i}")
-			@client.query("DELETE FROM students WHERE ID=#{i}")
+			@client.query("DELETE FROM staffs WHERE id=#{i}")
+			@client.query("DELETE FROM students WHERE id=#{i}")
 		end
 		extract_person(i, page)
 	rescue Exception => e

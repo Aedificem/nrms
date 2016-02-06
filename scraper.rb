@@ -171,7 +171,7 @@ end
 	end
 end
 
-(200..3000).each do |i|
+(3..3000).each do |i|
 	sleep(1)
 	begin
 		page = @agent.get("http://moodle.regis.org/user/profile.php?id=" + i.to_s)

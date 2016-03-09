@@ -2,27 +2,15 @@
 
 require 'mechanize'
 require 'mysql2'
-require 'json'
-
-path = "secrets.json"
-if ARGV[0]
-	path = ARGV[0]
-end
-secrets = JSON.parse(File.read(path))
+require 'yaml'
 
 @agent = Mechanize.new
 
-USERNAME = secrets['REGIS_USERNAME']
-PASSWORD = secrets['REGIS_PASSWORD']
-
-if !USERNAME or !PASSWORD
-	puts "Did not pass credentials!"
-	exit
-end
+@config = YAML::load_file('config.yaml')
 
 page = @agent.post('https://moodle.regis.org/login/index.php', {
-	"username" => USERNAME,
-	"password" => PASSWORD,
+	"username" => @config["auth"]["regis"]["username"],
+	"password" => @config["auth"]["regis"]["password"],
 })
 
 if page.title != "Dashboard"
@@ -30,7 +18,7 @@ if page.title != "Dashboard"
 	exit
 end
 
-@client = Mysql2::Client.new(:host => secrets['DB_HOST'], :username => secrets['DB_USER'], :password => secrets['DB_PASSWORD'], :database => secrets['DB_NAME'])
+@client = Mysql2::Client.new(:host => @config["auth"]["mysql"]["host"], :username => @config["auth"]["mysql"]["user"], :password => @config["auth"]["mysql"]["password"], :database => @config["auth"]["mysql"]["database"])
 
 sql = <<-SQL
 CREATE TABLE IF NOT EXISTS courses (
@@ -158,31 +146,36 @@ def extract_course(mid, page)
 end
 
 (1..700).each do |i|
-	sleep(1)
-	begin
-		page = @agent.get("http://moodle.regis.org/course/view.php?id=" + i.to_s)
-		if page.title == "Notice" or page.title == "Error"
-			@client.query("DELETE FROM courses WHERE id=#{i}")
+	if not @config["ignores"]["courses"].include? i
+		sleep(1)
+		begin
+			page = @agent.get("http://moodle.regis.org/course/view.php?id=" + i.to_s)
+			if page.title == "Notice" or page.title == "Error"
+				@client.query("DELETE FROM courses WHERE id=#{i}")
+				next
+			end
+			extract_course(i, page)
+		rescue Mechanize::ResponseCodeError
+			@config["ignores"]["courses"].push(i)
 			next
 		end
-		extract_course(i, page)
-	rescue Mechanize::ResponseCodeError
-		next
 	end
 end
 
 (3..3000).each do |i|
-	sleep(1)
-	begin
-		page = @agent.get("http://moodle.regis.org/user/profile.php?id=" + i.to_s)
-		if page.title == "Notice" or page.title == "Error" or !page.title
-			@client.query("DELETE FROM staffs WHERE id=#{i}")
-			@client.query("DELETE FROM students WHERE id=#{i}")
+	if not @config["ignores"]["students"].include? i
+		sleep(1)
+		begin
+			page = @agent.get("http://moodle.regis.org/user/profile.php?id=" + i.to_s)
+			if page.title == "Notice" or page.title == "Error" or !page.title
+				@client.query("DELETE FROM staffs WHERE id=#{i}")
+				@client.query("DELETE FROM students WHERE id=#{i}")
+			end
+			extract_person(i, page)
+		rescue Exception => e
+			@config["ignores"]["students"].push(i)
 		end
-		extract_person(i, page)
-	rescue Exception => e
-		puts "Skipped #{i}"
-		#puts e.inspect
-		#puts e.backtrace.join("\n")
 	end
 end
+
+File.open('config.yaml', 'w') { |f| f.puts @config.to_yaml }

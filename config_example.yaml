@@ -1,0 +1,23 @@
+# Rename this to config.yaml
+
+auth:
+  regis:
+    username: username
+    password: password
+  mysql:
+    db: db
+    host: host
+    user: user
+    password: password
+
+options:
+  students:
+    from: 1
+    to: 3000
+  courses:
+    from: 1
+    to: 700
+
+ignores:
+  students: []
+  courses: []

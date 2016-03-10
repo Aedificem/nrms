@@ -1,3 +1,4 @@
+---
 # Rename this to config.yaml
 
 auth:
@@ -5,19 +6,17 @@ auth:
     username: username
     password: password
   mysql:
-    db: db
-    host: host
-    user: user
+    db: regis
+    host: localhost
+    user: root
     password: password
-
 options:
-  students:
-    from: 1
-    to: 3000
   courses:
     from: 1
     to: 700
-
+  people:
+    from: 2
+    to: 4000
 ignores:
-  students: []
   courses: []
+  people: []

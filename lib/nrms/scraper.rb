@@ -44,7 +44,7 @@ class Scraper
     		sleep(1)
     		begin
     			page = @agent.get(base_url + i.to_s)
-    			if page.title == "Notice" or page.title == "Error" or !page.title or page.title.include? "Test"
+    			if page.title == "Notice" or page.title == "Error" or !page.title or page.title.include? "Test" or page.title.include? "Parent" or page.title.include? "Nurse"
 
             if type == "people"
               @client.query("DELETE FROM staffs WHERE id=#{i}")

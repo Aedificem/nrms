@@ -77,11 +77,8 @@ class Scraper
   def extract_person(mid, page)
   	name = page.title.split(":")[0].split(" ")
   	first_name = name[0]
-  	last_name = name[1]
-  	if name.length > 2
-  		last_name = name[1] + " " + name[2]
-  	end
-
+  	last_name = name[1...10].join(" ")
+	
   	picture = page.search("a/img[@alt=\"Picture of #{first_name} #{last_name}\"]")[0]['src']
   	type = :staff
 
@@ -99,7 +96,7 @@ class Scraper
   		@client.query(sql)
   	else
   		grade =  @grades[department[0]]
-  		username = (first_name[0] + last_name + grade.to_s).downcase.sub("'", "")
+  		username = (first_name[0] + last_name + grade.to_s).downcase.sub("'", "").sub("-", "")
   		sql = "INSERT INTO students (id, username, first_name, last_name, advisement, mpicture) VALUES(#{mid}, \"#{username}\", \"#{first_name}\", \"#{last_name}\", \"#{department}\", \"#{picture}\")"
   		sql += " ON DUPLICATE KEY UPDATE username=\"#{username}\", first_name=\"#{first_name}\", last_name=\"#{last_name}\", advisement=\"#{department}\", mpicture=\"#{picture}\""
   		@client.query(sql)

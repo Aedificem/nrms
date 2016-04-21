@@ -139,7 +139,7 @@ class Scraper
   		t_id2 = "teacher_id=#{teacher_id}, "
   	end
 
-  	sql = "INSERT INTO courses (id, teacher_id, title, is_class) VALUES(#{mid}, #{t_id}, '#{title}', #{is_class}) ON DUPLICATE KEY UPDATE #{t_id2}title='#{title}'"
+  	sql = "INSERT INTO courses (id, teacher_id, title, is_class) VALUES(#{mid}, #{t_id}, '#{title}', #{is_class}) ON DUPLICATE KEY UPDATE #{t_id2}title='#{title}', is_class= #{is_class}"
   	@client.query(sql)
   end
 

@@ -112,7 +112,8 @@ class Scraper
 
   def extract_course(mid, page)
   	parts = page.title.split(":")
-
+    is_class = (parts.length > 2)
+    
   	title = parts[1]
   	if parts.length == 1
   		title = parts[0]
@@ -138,7 +139,7 @@ class Scraper
   		t_id2 = "teacher_id=#{teacher_id}, "
   	end
 
-  	sql = "INSERT INTO courses (id, teacher_id, title) VALUES(#{mid}, #{t_id}, '#{title}') ON DUPLICATE KEY UPDATE #{t_id2}title='#{title}'"
+  	sql = "INSERT INTO courses (id, teacher_id, title, is_class) VALUES(#{mid}, #{t_id}, '#{title}', #{is_class}) ON DUPLICATE KEY UPDATE #{t_id2}title='#{title}'"
   	@client.query(sql)
   end
 

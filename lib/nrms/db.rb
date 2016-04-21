@@ -10,6 +10,7 @@ module Database
     	id INT NOT NULL,
     	teacher_id INT,
     	title VARCHAR(50) NOT NULL,
+    	is_class BOOLEAN NOT NULL,
     	PRIMARY KEY (id)
     );
     SQL

@@ -112,7 +112,9 @@ class Scraper
 
   def extract_course(mid, page)
   	parts = page.title.split(":")
+  	#puts parts
     is_class = (parts.length > 2)
+    #puts is_class
     
   	title = parts[1]
   	if parts.length == 1

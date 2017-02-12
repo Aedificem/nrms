@@ -1,6 +1,7 @@
 require 'yaml'
 require_relative 'nrms/db'
 require_relative 'nrms/scraper'
+require_relative 'nrms/exceptions'
 
 CONFIG = YAML::load_file('./data/config.yaml')
 
@@ -13,10 +14,12 @@ scraper = Scraper.new CONFIG
 if scraper.login
   puts "Logged in!"
   begin
+		puts '--- SCRAPING COURSES ---'
     scraper.scrape "courses"
+		puts '--- SCRAPING PEOPLE ---'
     scraper.scrape "people"
-  rescue Exception => e
-    puts e
+  rescue Interrupt
+    
   ensure
     scraper.finish
   end
